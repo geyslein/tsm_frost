@@ -1,34 +1,43 @@
 version: '3'
 
+networks:
+  db_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.0.0/16
+
 services:
-  web:
-    image: fraunhoferiosb/frost-server:2.0
-    environment:
-      - serviceRootUrl=http://localhost:8080/FROST-Server
-      - plugins.multiDatastream.enable=true
-      - http_cors_enable=true
-      - http_cors_allowed_origins=*
-      - persistence_db_driver=org.postgresql.Driver
-      - persistence_db_url=jdbc:postgresql://database:5432/postgres
-      - persistence_db_username=postgres
-      - persistence_db_password=postgres
-      - persistence_autoUpdateDatabase=true
+  frost:
+    build:
+      context: .
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
     ports:
       - 8080:8080
-      - 1883:1883
+      - 9876:9876
+    volumes:
+      - ./context/:/usr/local/tomcat/conf/Catalina/localhost/
     depends_on:
       - database
+    networks:
+      db_net:
+        ipv4_address: 10.10.0.2
 
   database:
     image: postgis/postgis:11-2.5-alpine
     ports:
       - 5432:5432
     environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      POSTGRES_DB: "{POSTGRES_DB: -postgres}"
+      POSTGRES_USER: "{POSTGRES_USER: -postgres}"
+      POSTGRES_PASSWORD: "{POSTGRES_PASSWORD: -postgres}"
     volumes:
       - postgis_volume:/var/lib/postgresql/data
+    networks:
+      db_net:
+         ipv4_address: 10.10.0.3
+
 volumes:
-    postgis_volume:
-    test_volume:
+  postgis_volume:
