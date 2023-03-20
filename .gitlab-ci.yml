@@ -22,28 +22,16 @@ freeze-tag:
 default:
   image: python:3.9
 
-
-#unit-tests:
-#  stage: test
-#  before_script:
-#    - cd src
-#    - pip install pylint black
-#    - pip install -r requirements.txt
-#  script:
-#    - echo "Start unit tests!"
-#    - python3 -m unittest discover test
-
-build-images:
-  stage: build
+add-feature-branch-tags:
+  stage: release
+  except:
+    - "main"
   image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
-  before_script:
-    - export BUILD_DATE=$(date)
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    name: gcr.io/go-containerregistry/crane:debug
+    entrypoint: [ "" ]
   script:
-    - /kaniko/executor --force --build-arg BUILD_DATE="${BUILD_DATE}" --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination ${IMAGE_URL}:${CI_JOB_DATE}
-
+    - crane auth login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - crane tag ${IMAGE_URL}:${CI_JOB_DATE} ${CI_COMMIT_BRANCH}
 
 add-release-tags:
   stage: release
